@@ -1,27 +1,38 @@
 "use client";
 import dynamic from "next/dynamic";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-// Icono cutesy personalizado (emoji)
-const secretIcon = new L.DivIcon({
-  html: '<span style="font-size:2rem;">💌</span>',
-  className: "",
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
-});
+const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
+const Marker = dynamic(() => import("react-leaflet").then(m => m.Marker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: false });
 
-function MapComponent() {
-  // Ejemplo: marcador en CDMX
-  const exampleSecrets = [
-    {
-      id: 1,
-      position: [19.4326, -99.1332],
-      text: "¡Hola diva! Este es un secretito en CDMX 💖",
-    },
-  ];
+export default function Map() {
+  const [secrets, setSecrets] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchSecrets() {
+      const { data, error } = await supabase
+        .from("secrets")
+        .select("id, content, lat, lng, created_at");
+      if (!error && data) setSecrets(data.filter(s => s.lat && s.lng));
+    }
+    fetchSecrets();
+  }, []);
+
+  // Icono cutesy personalizado (emoji)
+  const L = typeof window !== "undefined" ? require("leaflet") : null;
+  const secretIcon = L
+    ? new L.DivIcon({
+        html: '<span style="font-size:2rem;">💌</span>',
+        className: "",
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+      })
+    : undefined;
 
   return (
     <MapContainer
@@ -35,15 +46,19 @@ function MapComponent() {
         attribution='<a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
       />
-      {exampleSecrets.map(secret => (
-        <Marker key={secret.id} position={secret.position as [number, number]} icon={secretIcon}>
+      {secrets.map(secret => (
+        <Marker
+          key={secret.id}
+          position={[secret.lat, secret.lng]}
+          icon={secretIcon}
+        >
           <Popup>
-            <span className="text-lg font-semibold">{secret.text}</span>
+            <span className="text-lg font-semibold">{secret.content}</span>
+            <br />
+            <span className="text-xs text-gray-400">{new Date(secret.created_at).toLocaleString()}</span>
           </Popup>
         </Marker>
       ))}
     </MapContainer>
   );
 }
-
-export default dynamic(() => Promise.resolve(MapComponent), { ssr: false });
