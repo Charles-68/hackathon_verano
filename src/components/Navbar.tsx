@@ -31,7 +31,6 @@ export default function Navbar() {
         {user && (
           <>
             <Link href="/profile" className="font-medium hover:underline">Perfil</Link>
-            <Link href="/logout" className="font-medium hover:underline text-red-500">Salir</Link>
           </>
         )}
       </div>
