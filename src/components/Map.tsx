@@ -11,6 +11,17 @@ const Popup = dynamic(() => import("react-leaflet").then(m => m.Popup), { ssr: f
 
 export default function Map() {
   const [secrets, setSecrets] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [likes, setLikes] = useState<{[secretId:string]:boolean}>({});
+  const [likeCounts, setLikeCounts] = useState<{[secretId:string]:number}>({});
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener?.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function fetchSecrets() {
@@ -21,6 +32,57 @@ export default function Map() {
     }
     fetchSecrets();
   }, []);
+
+  useEffect(() => {
+    async function fetchLikes() {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("likes")
+        .select("secret_id")
+        .eq("user_id", user.id);
+      if (!error && data) {
+        const likeMap: {[secretId:string]:boolean} = {};
+        data.forEach((row:any) => { likeMap[row.secret_id] = true; });
+        setLikes(likeMap);
+      }
+    }
+    async function fetchLikeCounts() {
+      const { data, error } = await supabase
+        .from("likes")
+        .select("secret_id, count:secret_id")
+        .group("secret_id");
+      if (!error && data) {
+        const countMap: {[secretId:string]:number} = {};
+        data.forEach((row:any) => { countMap[row.secret_id] = row.count || 0; });
+        setLikeCounts(countMap);
+      }
+    }
+    fetchLikes();
+    fetchLikeCounts();
+  }, [user, secrets]);
+
+  // Like/Unlike handler
+  async function handleLike(secretId:string) {
+    if (!user) return;
+    if (likes[secretId]) {
+      // Quitar like
+      await supabase.from("likes").delete()
+        .eq("user_id", user.id)
+        .eq("secret_id", secretId);
+    } else {
+      // Dar like
+      await supabase.from("likes").insert({ user_id: user.id, secret_id: secretId });
+    }
+    // Refresca likes y conteo
+    const { data } = await supabase.from("likes").select("secret_id").eq("user_id", user.id);
+    const likeMap: {[secretId:string]:boolean} = {};
+    data?.forEach((row:any) => { likeMap[row.secret_id] = true; });
+    setLikes(likeMap);
+    const { data: counts } = await supabase.from("likes").select("secret_id, count:secret_id").group("secret_id");
+    const countMap: {[secretId:string]:number} = {};
+    counts?.forEach((row:any) => { countMap[row.secret_id] = row.count || 0; });
+    setLikeCounts(countMap);
+  }
 
   // Icono cutesy personalizado (emoji)
   const L = typeof window !== "undefined" ? require("leaflet") : null;
@@ -56,6 +118,16 @@ export default function Map() {
             <span className="text-lg font-semibold">{secret.content}</span>
             <br />
             <span className="text-xs text-gray-400">{new Date(secret.created_at).toLocaleString()}</span>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                className={`rounded-full px-3 py-1 text-lg font-bold transition-all ${user ? (likes[secret.id] ? 'bg-pink-400 text-white' : 'bg-pink-100 text-pink-600 hover:bg-pink-200') : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                title={user ? (likes[secret.id] ? 'Quitar like' : 'Dar like') : 'Inicia sesión para dar like'}
+                onClick={() => user && handleLike(secret.id)}
+                disabled={!user}
+              >
+                ❤️ {likeCounts[secret.id] || 0}
+              </button>
+            </div>
           </Popup>
         </Marker>
       ))}

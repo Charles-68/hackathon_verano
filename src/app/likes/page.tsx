@@ -7,6 +7,8 @@ interface Secret {
   id: string;
   content: string;
   created_at: string;
+  lat?: number;
+  lng?: number;
 }
 
 export default function LikesPage() {
@@ -27,11 +29,12 @@ export default function LikesPage() {
   }, [router]);
 
   async function fetchLikes(userId: string) {
-    // Suponiendo que hay una tabla likes con user_id y secret_id
+    // Trae los likes del usuario y los secretos relacionados
     const { data: likes, error } = await supabase
       .from("likes")
-      .select("secret_id, secrets:secret_id(content, created_at, id)")
-      .eq("user_id", userId);
+      .select("secret_id, secrets:secret_id(id, content, created_at, lat, lng)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
     if (!error && likes) {
       setSecrets(likes.map((l: any) => l.secrets));
     }
