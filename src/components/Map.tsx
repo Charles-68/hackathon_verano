@@ -47,13 +47,15 @@ export default function Map() {
       }
     }
     async function fetchLikeCounts() {
+      // Trae todos los likes y cuenta por secret_id en el frontend
       const { data, error } = await supabase
         .from("likes")
-        .select("secret_id, count:secret_id")
-        .group("secret_id");
+        .select("secret_id");
       if (!error && data) {
         const countMap: {[secretId:string]:number} = {};
-        data.forEach((row:any) => { countMap[row.secret_id] = row.count || 0; });
+        data.forEach((row:any) => {
+          countMap[row.secret_id] = (countMap[row.secret_id] || 0) + 1;
+        });
         setLikeCounts(countMap);
       }
     }
@@ -64,6 +66,12 @@ export default function Map() {
   // Like/Unlike handler
   async function handleLike(secretId:string) {
     if (!user) return;
+    // Actualiza el contador localmente para feedback instantáneo
+    setLikes(prev => ({ ...prev, [secretId]: !prev[secretId] }));
+    setLikeCounts(prev => ({
+      ...prev,
+      [secretId]: prev[secretId] ? prev[secretId] - 1 : (prev[secretId] || 0) + 1
+    }));
     if (likes[secretId]) {
       // Quitar like
       await supabase.from("likes").delete()
@@ -73,28 +81,39 @@ export default function Map() {
       // Dar like
       await supabase.from("likes").insert({ user_id: user.id, secret_id: secretId });
     }
-    // Refresca likes y conteo
-    const { data } = await supabase.from("likes").select("secret_id").eq("user_id", user.id);
-    const likeMap: {[secretId:string]:boolean} = {};
-    data?.forEach((row:any) => { likeMap[row.secret_id] = true; });
-    setLikes(likeMap);
-    const { data: counts } = await supabase.from("likes").select("secret_id, count:secret_id").group("secret_id");
-    const countMap: {[secretId:string]:number} = {};
-    counts?.forEach((row:any) => { countMap[row.secret_id] = row.count || 0; });
-    setLikeCounts(countMap);
+    // Opcional: refresca likes y conteo desde backend para mantener consistencia
+    setTimeout(async () => {
+      const { data } = await supabase.from("likes").select("secret_id").eq("user_id", user.id);
+      const likeMap: {[secretId:string]:boolean} = {};
+      data?.forEach((row:any) => { likeMap[row.secret_id] = true; });
+      setLikes(likeMap);
+      const { data: counts } = await supabase.from("likes").select("secret_id");
+      const countMap: {[secretId:string]:number} = {};
+      counts?.forEach((row:any) => {
+        countMap[row.secret_id] = (countMap[row.secret_id] || 0) + 1;
+      });
+      setLikeCounts(countMap);
+    }, 500);
   }
 
   // Icono cutesy personalizado (emoji)
-  const L = typeof window !== "undefined" ? require("leaflet") : null;
-  const secretIcon = L
-    ? new L.DivIcon({
+  let secretIcon = undefined;
+  let leafletReady = false;
+  if (typeof window !== "undefined") {
+    try {
+      const L = require("leaflet");
+      secretIcon = new L.DivIcon({
         html: '<span style="font-size:2rem;">💌</span>',
         className: "",
         iconSize: [32, 32],
         iconAnchor: [16, 32],
         popupAnchor: [0, -32],
-      })
-    : undefined;
+      });
+      leafletReady = true;
+    } catch (e) {
+      leafletReady = false;
+    }
+  }
 
   return (
     <MapContainer
@@ -108,7 +127,7 @@ export default function Map() {
         attribution='<a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
       />
-      {secrets.map(secret => (
+      {leafletReady && secrets.map(secret => (
         <Marker
           key={secret.id}
           position={[secret.lat, secret.lng]}
