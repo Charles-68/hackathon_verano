@@ -1,36 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Un mapa tipo google earth, hay secretos geolocalizados, subidos por gente anónima, con mensajes de "Aqui me ligue a mi profe", es anónimo, pero tu con tu cuenta puedes ver los secretos que tu escribiste, y eres capaz de manejarlos, es decir, editarlo, borrarlos, o cambiarlos de lugar, junto con un historial de versiones que todos tienen acceso a. Además se podrá dar like y guardar secretos que leíste en otros lugares en una interfaz distnita, y que haya botones que te redirijan a la ubicación del secretos. Los secretos que tengan más likes, se mostrarán más grande en el mapa.
 
-## Getting Started
 
-First, run the development server:
+requerimientos:
+Que haya una barra superior en la página con los botones de sign up, log in. 
+Par el login, doble autenticación, que sea con correo y contraseña.
+Que una vez iniciada sesión, en la misma barra, ya no se mostren esos botones, sino que se muestre el botón de perfil.
+Además, si se inicia sesión con un correo en específico, puedas manejar los usuarios como admin, el correo será: charles8002.dgc@gmail.com
+El mapa, literalmente un mapa en 2d donde puedas dezplazarte manteniendo presionado el mouse y moviendolo tipo arrastrarlo, que lo puedas girar, hacer zoom in, zoom out, y que no se te olviden los secretos más importantes que haya en el mapa
+Además unos botones en la parte inferior derecha en la que una es para seleccionar y leer secretos, dar like y demás. y otro para tu escribir tu secreto
+Que en el mensaje en donde se muestra el secreto, nunca se mostrará el nombre de usuario del mensaje, solo el secreto, numero de likes, y el emoji que indique el tema del secreto.
+Cuando le apretes al botón de escribir tu secreto, se te muestre un cuadro de texto en el que puedas escribir tu secreto, además de clasificarlo en algún emoji que indique el tema del secreto. Los temas son: Romántico, Amistoso, Triste, Divertido, Odio. Luego te redirija al mapa, y se podrás elegir con una pinchita el lugar en donde localizar tu secreto, y se te mostrará el mapa con tu secreto en el lugar que eligiste.
+Se podrá borrar cualquier usuario, y su historial de secretos.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Tecnologías:
+Frontend: Next.js (React) para la web, usando una librería de mapas 3D tipo CesiumJS o react-globe.gl para el "planeta tierra".
+Backend: Supabase (o Firebase) para autenticación, base de datos y almacenamiento de secretos (con historial).
+Autenticación: Supabase Auth con correo+contraseña y configuración de doble factor.
+Mapa: CesiumJS o react-globe.gl para el globo 3D, integración con los secretos.
+UI/UX: Diseño moderno, responsivo, con barra superior y botones flotantes.
